@@ -17,12 +17,31 @@ canvas{display:block;position:fixed;inset:0}
 #ov>div{max-width:600px;margin:16px;padding:22px;border:1px solid var(--ac);background:#070b16}
 #ov h1{margin:0 0 8px;font-size:22px;color:var(--ac)}
 #ov button{margin-top:14px;padding:9px 22px;background:var(--ac);border:0;color:#001018;font:inherit;font-weight:700;cursor:pointer}
+#tl,#tr,#ts{display:none;position:fixed;z-index:3;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;touch-action:none;--u:clamp(52px,17vmin,88px)}
+canvas{touch-action:none}html,body{overscroll-behavior:none}
+.tb{display:flex;flex-direction:column;align-items:center;justify-content:center;border:1px solid #35e0ff99;border-radius:16px;background:#0a1220b0;color:var(--fg);font-weight:700;font-size:calc(var(--u)*.34);line-height:1}
+.tb.tx{font-size:calc(var(--u)*.23)}
+.tb small{font-size:calc(var(--u)*.17);font-weight:400;margin-top:3px;opacity:.85}
+.tb.on{background:#35e0ffcc;color:#001018;border-color:#fff}
+#tl{left:calc(12px + env(safe-area-inset-left,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));gap:8px;grid-template:calc(var(--u)*.72) var(--u)/var(--u) var(--u)}
+#tr{right:calc(12px + env(safe-area-inset-right,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));gap:8px;grid-template:var(--u) var(--u)/var(--u) var(--u)}
+#ts{right:calc(14px + env(safe-area-inset-right,0px));top:calc(104px + env(safe-area-inset-top,0px));gap:8px}
+#ts button{padding:8px 10px;border:1px solid #35e0ff99;border-radius:10px;background:#0a1220b0;color:var(--fg);font:700 11px ui-monospace,Menlo,Consolas,monospace}
+#ts button.off{opacity:.45}
+@media (pointer:coarse){#tl,#tr{display:grid}#ts{display:flex}#hp{display:none}
+#bars{left:calc(16px + env(safe-area-inset-left,0px));top:calc(16px + env(safe-area-inset-top,0px));width:min(200px,44vw);font-size:12px}
+#md{right:calc(16px + env(safe-area-inset-right,0px));top:calc(16px + env(safe-area-inset-top,0px))}
+#sp{left:auto;right:calc(16px + env(safe-area-inset-right,0px));bottom:auto;top:calc(40px + env(safe-area-inset-top,0px));font-size:34px;text-align:right}
+#sx{left:50%;top:50%;transform:translate(-50%,-50%);max-width:min(440px,88vw);max-height:78vh;overflow:auto;z-index:4}}
 </style></head><body>
 <div class="p" id="bars">AIR TANK <span id="tk"></span>%<div class="b"><i id="tb"></i></div>SUCTION <span id="su"></span> · ALT <span id="al"></span> m</div>
 <div class="p" id="md"></div>
 <div class="p" id="sp"><span id="kmh">0</span><small><span id="mph">0</span> mph · km/h</small></div>
 <div class="p" id="hp">W/S gas·brake (pitch in air) · A/D steer (yaw) · Q/E roll<br>SPACE lift thrusters · SHIFT rear thruster · F suction · R reset · I specs</div>
 <div class="p" id="sx"><b>Tesla Roadster (gen 2) · revealed 15 Oct 2026</b><br>Performance: 2 seats, active aero + suction ($50k deposit) · Thrust: 2 seats, rear cold-gas thrusters, 0-60 mph &lt;1 s ($250k) · Rocket: 1 seat, perimeter thrusters, "can fly", invite-only<br>Range 300 mi (483 km) · top speed &gt;230 mph (370 km/h)<br>10 cold-gas thrusters · 600 L rechargeable compressed air · up to 80 kN rear thrust<br>Fans + ground seal hold it upside down, even parked<br>Steer-by-wire yoke · Mg/Ti/carbon weight savings · production 2028<br><i>Game: 4 corner lift thrusters + rear boost. Mass (~1,500 kg) and size are estimates, not published.</i></div>
+<div id="tl"><div class="tb" data-k="KeyQ">↺<small>ROLL</small></div><div class="tb" data-k="KeyE">↻<small>ROLL</small></div><div class="tb" data-k="KeyA">◄<small>STEER</small></div><div class="tb" data-k="KeyD">►<small>STEER</small></div></div>
+<div id="tr"><div class="tb tx" data-k="ShiftLeft">BOOST</div><div class="tb" data-k="KeyW">▲<small>GAS</small></div><div class="tb tx" data-k="Space">LIFT</div><div class="tb" data-k="KeyS">▼<small>BRAKE</small></div></div>
+<div id="ts"><button id="bF">SUCTION</button><button id="bR">RESET</button><button id="bI">SPECS</button></div>
 <div id="ov"><div><h1>ROADSTER · NIGHT FLIGHT</h1>Eternal night. Empty low-poly city. Ramps, loops and ceilings everywhere. Drive up walls, hang from ceilings, fire the thrusters and fly.<p id="sx2"></p><button id="go">DRIVE</button></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
@@ -180,7 +199,14 @@ let hc=0;function hud(){if(hc++%4)return;const sp=V.length();$('kmh').textConten
 addEventListener('keydown',e=>{K[e.code]=1;if(e.code=='KeyR')reset();if(e.code=='KeyF')suc=!suc;if(e.code=='KeyI'){const s=$('sx').style;s.display=s.display=='block'?'none':'block'}
  if(/Space|Arrow/.test(e.code))e.preventDefault();aud()});
 addEventListener('keyup',e=>K[e.code]=0);addEventListener('blur',()=>{for(const k in K)K[k]=0});
-$('sx2').innerHTML=$('sx').innerHTML+'<br><br>'+$('hp').innerHTML;
+const TOUCH=matchMedia('(pointer:coarse)').matches,TB=[...document.querySelectorAll('[data-k]')];
+$('sx2').innerHTML=TOUCH?'Left thumb: ◄ ► steer / yaw · ↺ ↻ roll.<br>Right thumb: ▲ gas (nose down in air) · ▼ brake (nose up in air) · LIFT thrusters · BOOST rear thruster.<br>Top buttons: SUCTION, RESET, SPECS.':$('sx').innerHTML+'<br><br>'+$('hp').innerHTML;
+function tsync(e){e.preventDefault();const on=new Set();for(let i=0;i<e.touches.length;i++){const t=e.touches[i],el=document.elementFromPoint(t.clientX,t.clientY),b=el&&el.closest('[data-k]');if(b)on.add(b)}
+ TB.forEach(b=>{const v=on.has(b);if(v!=b.classList.contains('on')){b.classList.toggle('on',v);K[b.dataset.k]=v?1:0}})}
+for(const c of[$('tl'),$('tr')])['touchstart','touchmove','touchend','touchcancel'].forEach(t=>c.addEventListener(t,tsync,{passive:false}));
+$('bR').onclick=reset;$('bF').onclick=()=>{suc=!suc;$('bF').classList.toggle('off',!suc)};
+$('bI').onclick=()=>{const s=$('sx').style;s.display=s.display=='block'?'none':'block'};$('sx').onclick=()=>$('sx').style.display='none';
+addEventListener('contextmenu',e=>{if(TOUCH)e.preventDefault()});
 $('go').onclick=()=>{$('ov').style.display='none';aud();window.focus()};
 let last=performance.now(),acc=0;
 function loop(now){requestAnimationFrame(loop);const dt=Math.min(.05,(now-last)/1000);last=now;acc+=dt;let n=0;while(acc>=1/120&&n++<8){step(1/120);acc-=1/120}
